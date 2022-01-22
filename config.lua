@@ -10,10 +10,8 @@ Keys = {
 }
 
 Config = Config or {}
-
 local StringCharset = {}
 local NumberCharset = {}
-
 for i = 48,  57 do table.insert(NumberCharset, string.char(i)) end
 for i = 65,  90 do table.insert(StringCharset, string.char(i)) end
 for i = 97, 122 do table.insert(StringCharset, string.char(i)) end
@@ -25,7 +23,6 @@ Config.RandomStr = function(length)
 		return ''
 	end
 end
-
 Config.RandomInt = function(length)
 	if length > 0 then
 		return Config.RandomInt(length-1) .. NumberCharset[math.random(1, #NumberCharset)]
@@ -33,6 +30,9 @@ Config.RandomInt = function(length)
 		return ''
 	end
 end
+
+Config.EnableBlips = true
+Config.RequiredReputationForMethLab = 15
 
 Config.Dealers = {
     [1] = {
@@ -43,8 +43,8 @@ Config.Dealers = {
             ["z"] = 31.06301,
         },
         ["time"] = {
-            ["min"] = 9,
-            ["max"] = 15,
+            ["min"] = 0,
+            ["max"] = 24,
         },
         ["products"] = {
             [1] = {
@@ -54,7 +54,7 @@ Config.Dealers = {
                 info = {},
                 type = "item",
                 slot = 1,
-                minrep = 25,
+                minrep = 1,
             },
 
             [2] = {
@@ -111,7 +111,53 @@ Config.Dealers = {
                 type = "item",
                 slot = 7,
                 minrep = 90,
-            }
+            },
+            [8] = {
+                name = "advancedlockpick",
+                price = 500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 8,
+                minrep = 20,
+            },
+            [9] = {
+                name = "thermite",
+                price = 1500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 9,
+                minrep = 50,
+            },
+            [10] = {
+                name = "electronickit",
+                price = 3500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 10,
+                minrep = 35,
+            },
+            [11] = {
+                name = "trojan_usb",
+                price = 500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 11,
+                minrep = 30,
+            },
+            [12] = {
+                name = "gatecrack",
+                price = 1500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 12,
+                minrep = 25,
+            },
+
         },
     },
     [2] = {
@@ -122,8 +168,8 @@ Config.Dealers = {
             ["z"] = 4.64, 
         },
         ["time"] = {
-            ["min"] = 20, 
-            ["max"] = 03,
+            ["min"] = 0, 
+            ["max"] = 24,
         },
         ["products"] = {
             [1] = {
@@ -197,52 +243,48 @@ Config.Dealers = {
                 type = "item",
                 slot = 8,
                 minrep = 115,
-            }
-        },
-    },
-    [3] = {
-        ["name"] = "Ouweheer",
-        ["coords"] = {
-            ["x"] = -50.25, 
-            ["y"] = 1911.26, 
-            ["z"] = 195.71,
-        },
-        ["time"] = {
-            ["min"] = 1,
-            ["max"] = 23,
-        },
-        ["products"] = {
-            [1] = {
-                name = "bandage",
-                price = 100,
-                amount = 50,
+            },
+            [9] = {
+                name = "advancedlockpick",
+                price = 500,
+                amount = 5,
                 info = {},
                 type = "item",
-                slot = 1,
-                minrep = 0,
-            }
-            -- [2] = {
-            --     name = "painkillers",
-            --     price = 500,
-            --     amount = 2,
-            --     info = {},
-            --     type = "item",
-            --     slot = 2,
-            --     minrep = 0,
-            -- },
+                slot = 9,
+                minrep = 20,
+            },
+            [10] = {
+                name = "thermite",
+                price = 1500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 10,
+                minrep = 50,
+            },
+            [11] = {
+                name = "tablet",
+                price = 500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 11,
+                minrep = 15,
+            },
+            [12] = {
+                name = "electronickit",
+                price = 3500,
+                amount = 5,
+                info = {},
+                type = "item",
+                slot = 12,
+                minrep = 35,
+            },
         },
     },
 }
 Config.DeliveryLocations = {
     [1] = {
-        ["label"] = "Hamnen",
-        ["coords"] = {
-            ["x"] = 858.5331,
-            ["y"] = -3202.553,
-            ["z"] = 5.994995,
-        }
-    },
-    [2] = {
         ["label"] = "Bakgata",
         ["coords"] = {
             ["x"] = 367.3167,
@@ -250,7 +292,7 @@ Config.DeliveryLocations = {
             ["z"] = 103.3258,
         }
     },
-    [3] = {
+    [2] = {
         ["label"] = "Tivoli",
         ["coords"] = {
             ["x"] = -1711.336,
@@ -258,37 +300,23 @@ Config.DeliveryLocations = {
             ["z"] = 13.15505,
         }
     },
-    -- [4] = {
-    --     ["label"] = "Resort",
-    --     ["coords"] = {
-    --         ["x"] = -1245.63,
-    --         ["y"] = 376.21,
-    --         ["z"] = 75.34,
-    --     }
-    -- },
-    -- [5] = {
-    --     ["label"] = "Bahama Mamas",
-    --     ["coords"] = {
-    --         ["x"] = -1383.1,
-    --         ["y"] = -639.99,
-    --         ["z"] = 28.67,
-    --     }
-    -- },
+    [3] = {
+        ["label"] = "Resort",
+        ["coords"] = {
+            ["x"] = -1245.63,
+            ["y"] = 376.21,
+            ["z"] = 75.34,
+        }
+    },
+    [4] = {
+        ["label"] = "Bahamas Mamas",
+        ["coords"] = {
+            ["x"] = -1383.1,
+            ["y"] = -639.99,
+            ["z"] = 28.67,
+        }
+    },
 }
-
--- Config.CornerSellingZones = {
---     [1] = {
---         ["coords"] = {
---             ["x"] = -1415.53,
---             ["y"] = -1041.51,
---             ["z"] = 4.62,
---         },
---         ["time"] = {
---             ["min"] = 12,
---             ["max"] = 18,
---         },
---     },
--- }
 
 Config.DeliveryItems = {
     [1] = {
@@ -309,4 +337,3 @@ Config.Locations = {
         ["z"] = 4.64,  
     }
 }
-

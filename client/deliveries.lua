@@ -1,3 +1,4 @@
+QBCore = exports['qb-core']:GetCoreObject()
 currentDealer = nil
 knockingDoor = false
 
@@ -7,6 +8,8 @@ local waitingDelivery = nil
 local activeDelivery = nil
 
 local interacting = false
+local haskey = false
+local refused = false
 
 local deliveryTimeout = 0
 
@@ -16,14 +19,28 @@ local healAnim = "cpr_pumpchest"
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded')
 AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
-    QBCore.Functions.TriggerCallback('frp_weapondealer:server:RequestConfig', function(DealerConfig)
+    QBCore.Functions.TriggerCallback('qb-weapondealer:server:RequestConfig', function(DealerConfig)
         Config.Dealers = DealerConfig
     end)
 end)
 
 Citizen.CreateThread(function()
     while true do
-        local ped = GetPlayerPed(-1)
+        Citizen.Wait(2000)
+        QBCore.Functions.TriggerCallback('qb-ifruitstore:server:GetItem', function(hasItem)
+            if hasItem then
+                haskey = true
+            end
+        end, "labkey")
+        if haskey then 
+            Citizen.Wait(3000)
+        end
+    end
+end)
+
+Citizen.CreateThread(function()
+    while true do
+        local ped = PlayerPedId()
         local pos = GetEntityCoords(ped)
 
         nearDealer = false
@@ -39,49 +56,33 @@ Citizen.CreateThread(function()
                         if not dealerIsHome then
                             DrawText3D(dealer["coords"]["x"], dealer["coords"]["y"], dealer["coords"]["z"], '[E] Knock')
                             if IsControlJustPressed(0, Keys["E"]) then
-                                TriggerEvent('rs-weathersync:client:EnableSync')
+                                TriggerEvent('qb-weathersync:client:EnableSync')
                                 Citizen.Wait(1000)
                                 currentDealer = id
                                 knockDealerDoor()
                             end
                         elseif dealerIsHome then
-                            if dealer["name"] == "Ouweheer" then
-                                DrawText3D(dealer["coords"]["x"], dealer["coords"]["y"], dealer["coords"]["z"], '[E] För att köpa / [G] Hjälp din kompis (€5000)')
+                            if dealer["name"] == "Bogdan" and QBCore.Functions.GetPlayerData().metadata["wepdealerrep"] > Config.RequiredReputationForMethLab and not haskey and not refused then
+                                DrawText3D(dealer["coords"]["x"], dealer["coords"]["y"], dealer["coords"]["z"], 'Do you wanna be Heisenberg? Hit [G] for getting lab key\n [E] to refuse')
                             else
                                 DrawText3D(dealer["coords"]["x"], dealer["coords"]["y"], dealer["coords"]["z"], '[E] To buy / [G] Do assignments')
                             end
+
                             if IsControlJustPressed(0, Keys["E"]) then
-                                buyDealerStuff()
+                                if dealer["name"] == "Bogdan" and QBCore.Functions.GetPlayerData().metadata["wepdealerrep"] > Config.RequiredReputationForMethLab and not haskey and not refused then
+                                    refused = true
+                                    TriggerEvent("chatMessage", Config.Dealers[currentDealer]["name"], "normal", 'As you wish...')
+                                else
+                                    buyDealerStuff()
+                                end
                             end
 
                             if IsControlJustPressed(0, Keys["G"]) then
-                                if dealer["name"] == "Ouweheer" then
-                                    local player, distance = GetClosestPlayer()
-                                    if player ~= -1 and distance < 5.0 then
-                                        local playerId = GetPlayerServerId(player)
-                                        isHealingPerson = true
-                                        QBCore.Functions.Progressbar("hospital_revive", "Help the person up..", 5000, false, true, {
-                                            disableMovement = false,
-                                            disableCarMovement = false,
-                                            disableMouse = false,
-                                            disableCombat = true,
-                                        }, {
-                                            animDict = healAnimDict,
-                                            anim = healAnim,
-                                            flags = 16,
-                                        }, {}, {}, function() -- Done
-                                            isHealingPerson = false
-                                            StopAnimTask(GetPlayerPed(-1), healAnimDict, "exit", 1.0)
-                                            QBCore.Functions.Notify("Du hjälpte personen!")
-                                            TriggerServerEvent("hospital:server:RevivePlayer", playerId, true)
-                                        end, function() -- Cancel
-                                            isHealingPerson = false
-                                            StopAnimTask(GetPlayerPed(-1), healAnimDict, "exit", 1.0)
-                                            QBCore.Functions.Notify("Misslyckades", "error")
-                                        end)
-                                    else
-                                        QBCore.Functions.Notify("Det finns ingen i närheten..", "error")
-                                    end
+                                if dealer["name"] == "Bogdan" and QBCore.Functions.GetPlayerData().metadata["wepdealerrep"] > Config.RequiredReputationForMethLab and not haskey and not refused then
+                                    TriggerServerEvent("qb-methlab:givekey", source)
+                                    hashkey = true
+                                    interacting = false
+                                    TriggerEvent("chatMessage", Config.Dealers[currentDealer]["name"], "normal", 'Ok bro, methlab is located at small village called Grapeseed, only two buldings from paint shop.. Enter it from behind.')
                                 else
                                     if waitingDelivery == nil then
                                         TriggerEvent("chatMessage", Config.Dealers[currentDealer]["name"], "normal", 'Here you have the products, keep track of your email regarding where to deliver the goods!')
@@ -109,10 +110,11 @@ Citizen.CreateThread(function()
 end)
 
 function GetClosestPlayer()
+    local ped = PlayerPedId()
     local closestPlayers = QBCore.Functions.GetPlayersFromCoords()
     local closestDistance = -1
     local closestPlayer = -1
-    local coords = GetEntityCoords(GetPlayerPed(-1))
+    local coords = GetEntityCoords(ped)
 
     for i=1, #closestPlayers, 1 do
         if closestPlayers[i] ~= PlayerId() then
@@ -212,13 +214,13 @@ function knockDoorAnim(home)
     end
 end
 
-RegisterNetEvent('frp_weapondealer:client:updateDealerItems')
-AddEventHandler('frp_weapondealer:client:updateDealerItems', function(itemData, amount)
-    TriggerServerEvent('frp_weapondealer:server:updateDealerItems', itemData, amount, currentDealer)
+RegisterNetEvent('qb-weapondealer:client:updateDealerItems')
+AddEventHandler('qb-weapondealer:client:updateDealerItems', function(itemData, amount)
+    TriggerServerEvent('qb-weapondealer:server:updateDealerItems', itemData, amount, currentDealer)
 end)
 
-RegisterNetEvent('frp_weapondealer:client:setDealerItems')
-AddEventHandler('frp_weapondealer:client:setDealerItems', function(itemData, amount, dealer)
+RegisterNetEvent('qb-weapondealer:client:setDealerItems')
+AddEventHandler('qb-weapondealer:client:setDealerItems', function(itemData, amount, dealer)
     Config.Dealers[dealer]["products"][itemData.slot].amount = Config.Dealers[dealer]["products"][itemData.slot].amount - amount
 end)
 
@@ -233,7 +235,7 @@ function requestDelivery()
         ["dealer"] = currentDealer,
         ["itemData"] = Config.DeliveryItems[item]
     }
-    QBCore.Functions.TriggerCallback('frp_weapondealer:giveDeliveryItems', function()
+    QBCore.Functions.TriggerCallback('qb-weapondealer:giveDeliveryItems', function()
     end, amount)
     SetTimeout(7000, function()
         TriggerServerEvent('qb-phone:server:sendNewMail', {
@@ -242,7 +244,7 @@ function requestDelivery()
             message = "Here is all the information about your delivery, <br>Place: "..waitingDelivery["locationLabel"].."<br>Goods: <br> "..amount.."x "..QBCore.Shared.Items[waitingDelivery["itemData"]["item"]]["label"].."<br><br> Make sure you are on time!",
             button = {
                 enabled = true,
-                buttonEvent = "frp_weapondealer:client:setLocation",
+                buttonEvent = "qb-weapondealer:client:setLocation",
                 buttonData = waitingDelivery
             }
         })
@@ -273,8 +275,8 @@ function setMapBlip(x, y)
     QBCore.Functions.Notify('The route to the delivery point is indicated on your map.', 'success');
 end
 
-RegisterNetEvent('frp_weapondealer:client:setLocation')
-AddEventHandler('frp_weapondealer:client:setLocation', function(locationData)
+RegisterNetEvent('qb-weapondealer:client:setLocation')
+AddEventHandler('qb-weapondealer:client:setLocation', function(locationData)
     if activeDelivery == nil then
         activeDelivery = locationData
     else
@@ -292,7 +294,7 @@ AddEventHandler('frp_weapondealer:client:setLocation', function(locationData)
     Citizen.CreateThread(function()
         while true do
 
-            local ped = GetPlayerPed(-1)
+            local ped = PlayerPedId()
             local pos = GetEntityCoords(ped)
             local inDeliveryRange = false
 
@@ -353,13 +355,13 @@ function deliverStuff(activeDelivery)
             disableMouse = false,
             disableCombat = true,
         }, {}, {}, {}, function() -- Done
-            TriggerServerEvent('frp_weapondealer:server:succesDelivery', activeDelivery, true)
+            TriggerServerEvent('qb-weapondealer:server:succesDelivery', activeDelivery, true)
         end, function() -- Cancel
             ClearPedTasks(GetPlayerPed(-1))
             QBCore.Functions.Notify("Canceled..", "error")
         end)
     else
-        TriggerServerEvent('frp_weapondealer:server:succesDelivery', activeDelivery, false)
+        TriggerServerEvent('qb-weapondealer:server:succesDelivery', activeDelivery, false)
     end
     deliveryTimeout = 0
 end
@@ -385,7 +387,7 @@ function checkPedDistance()
 end
 
 function doPoliceAlert()
-    local ped = GetPlayerPed(-1)
+    local ped = PlayerPedId()
     local pos = GetEntityCoords(ped)
     local s1, s2 = Citizen.InvokeNative(0x2EB41072B4C1E4C0, pos.x, pos.y, pos.z, Citizen.PointerValueInt(), Citizen.PointerValueInt())
     local street1 = GetStreetNameFromHashKey(s1)
@@ -395,11 +397,11 @@ function doPoliceAlert()
         streetLabel = streetLabel .. " " .. street2
     end
 
-    TriggerServerEvent('frp_weapondealer:server:callCops', streetLabel, pos)
+    TriggerServerEvent('qb-weapondealer:server:callCops', streetLabel, pos)
 end
 
-RegisterNetEvent('frp_weapondealer:client:robberyCall')
-AddEventHandler('frp_weapondealer:client:robberyCall', function(msg, streetLabel, coords)
+RegisterNetEvent('qb-weapondealer:client:robberyCall')
+AddEventHandler('qb-weapondealer:client:robberyCall', function(msg, streetLabel, coords)
     PlaySound(-1, "Lose_1st", "GTAO_FM_Events_Soundset", 0, 0, 1)
 	TriggerEvent('rs-policealerts:client:AddPoliceAlert', {
 		timeOut = 5000,
@@ -443,13 +445,13 @@ AddEventHandler('frp_weapondealer:client:robberyCall', function(msg, streetLabel
     end
 end)
 
-RegisterNetEvent('frp_weapondealer:client:executeEvents')
-AddEventHandler('frp_weapondealer:client:executeEvents', function()
-    TriggerServerEvent('frp_weapondealer:server:giveDeliveryItems', amount)
+RegisterNetEvent('qb-weapondealer:client:executeEvents')
+AddEventHandler('qb-weapondealer:client:executeEvents', function()
+    TriggerServerEvent('qb-weapondealer:server:giveDeliveryItems', amount)
 end)
 
-RegisterNetEvent('frp_weapondealer:client:sendDeliveryMail')
-AddEventHandler('frp_weapondealer:client:sendDeliveryMail', function(type, deliveryData)
+RegisterNetEvent('qb-weapondealer:client:sendDeliveryMail')
+AddEventHandler('qb-weapondealer:client:sendDeliveryMail', function(type, deliveryData)
     if type == 'perfect' then
         TriggerServerEvent('qb-phone:server:sendNewMail', {
             sender = Config.Dealers[deliveryData["dealer"]]["name"],
